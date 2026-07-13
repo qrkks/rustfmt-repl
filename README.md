@@ -1,4 +1,4 @@
-# rustfmt-snippet
+# rustfmt-repl
 
 A tiny adapter that lets `rustfmt` format Rust statement snippets used in
 Markdown code blocks and REPLs.
@@ -10,8 +10,7 @@ the wrapper again.
 ## Build
 
 ```powershell
-cargo build --release
-Copy-Item .\target\release\rustfmt-snippet.exe $HOME\.cargo\bin\
+cargo install rustfmt-repl
 ```
 
 ## Usage
@@ -19,13 +18,13 @@ Copy-Item .\target\release\rustfmt-snippet.exe $HOME\.cargo\bin\
 Read from stdin and write to stdout:
 
 ```powershell
-'let x=(1,2); dbg!(x,    x.0);' | rustfmt-snippet
+'let x=(1,2); dbg!(x,    x.0);' | rustfmt-repl
 ```
 
 Or format a file in place:
 
 ```powershell
-rustfmt-snippet path\to\snippet.rs
+rustfmt-repl path\to\snippet.rs
 ```
 
 ## mdsf
@@ -34,7 +33,7 @@ rustfmt-snippet path\to\snippet.rs
 {
   "languages": {
     "rust": {
-      "binary": "C:\\Users\\dell\\.cargo\\bin\\rustfmt-snippet.exe",
+      "binary": "C:\\Users\\dell\\.cargo\\bin\\rustfmt-repl.exe",
       "arguments": ["$PATH"],
       "stdin": false
     }

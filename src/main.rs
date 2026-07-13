@@ -28,7 +28,8 @@ fn run_rustfmt(source: &str) -> Result<String, String> {
         .map_err(|error| format!("failed to wait for rustfmt: {error}"))?;
 
     if output.status.success() {
-        String::from_utf8(output.stdout).map_err(|error| format!("rustfmt returned invalid UTF-8: {error}"))
+        String::from_utf8(output.stdout)
+            .map_err(|error| format!("rustfmt returned invalid UTF-8: {error}"))
     } else {
         Err(String::from_utf8_lossy(&output.stderr).into_owned())
     }
@@ -94,10 +95,12 @@ fn main() {
         }),
         None => {
             let mut source = String::new();
-            io::stdin().read_to_string(&mut source).unwrap_or_else(|error| {
-                eprintln!("failed to read stdin: {error}");
-                std::process::exit(2);
-            });
+            io::stdin()
+                .read_to_string(&mut source)
+                .unwrap_or_else(|error| {
+                    eprintln!("failed to read stdin: {error}");
+                    std::process::exit(2);
+                });
             source
         }
     };
