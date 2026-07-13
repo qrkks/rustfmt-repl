@@ -33,10 +33,15 @@ rustfmt-repl path\to\snippet.rs
 {
   "languages": {
     "rust": {
-      "binary": "C:\\Users\\dell\\.cargo\\bin\\rustfmt-repl.exe",
+      "binary": "rustfmt-repl",
       "arguments": ["$PATH"],
       "stdin": false
     }
   }
 }
 ```
+
+Make sure Cargo's binary directory is available on `PATH`. Its usual location
+is `$HOME/.cargo/bin` on Unix-like systems and `%USERPROFILE%\.cargo\bin` on
+Windows. If the editor does not inherit your shell environment, use the full
+path to the executable in your local configuration.
