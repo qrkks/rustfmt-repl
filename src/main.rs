@@ -1,7 +1,8 @@
 use std::env;
 use std::fs;
+use std::hash::{DefaultHasher, Hash, Hasher};
 use std::io::{self, Read, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 const START: &str = "// __RUSTFMT_SNIPPET_START__";
@@ -28,7 +29,8 @@ fn run_rustfmt(source: &str) -> Result<String, String> {
         .map_err(|error| format!("failed to wait for rustfmt: {error}"))?;
 
     if output.status.success() {
-        String::from_utf8(output.stdout).map_err(|error| format!("rustfmt returned invalid UTF-8: {error}"))
+        String::from_utf8(output.stdout)
+            .map_err(|error| format!("rustfmt returned invalid UTF-8: {error}"))
     } else {
         Err(String::from_utf8_lossy(&output.stderr).into_owned())
     }
@@ -85,8 +87,68 @@ fn format_source(source: &str) -> Result<String, String> {
     unwrap(&formatted, source.ends_with('\n'))
 }
 
+fn cache_path(source: &str) -> PathBuf {
+    let directory = env::var_os("RUSTFMT_REPL_CACHE_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| env::temp_dir().join("rustfmt-repl-cache"));
+    let mut hasher = DefaultHasher::new();
+    env!("CARGO_PKG_VERSION").hash(&mut hasher);
+    source.hash(&mut hasher);
+    directory.join(format!("{:016x}.cache", hasher.finish()))
+}
+
+fn read_cache(path: &Path, source: &str) -> Option<String> {
+    let bytes = fs::read(path).ok()?;
+    let length = usize::try_from(u64::from_le_bytes(bytes.get(..8)?.try_into().ok()?)).ok()?;
+    let cached_source = bytes.get(8..8 + length)?;
+    if cached_source != source.as_bytes() {
+        return None;
+    }
+    String::from_utf8(bytes.get(8 + length..)?.to_vec()).ok()
+}
+
+fn write_cache(path: &Path, source: &str, formatted: &str) {
+    let Some(parent) = path.parent() else {
+        return;
+    };
+    if fs::create_dir_all(parent).is_err() {
+        return;
+    }
+    let mut bytes = Vec::with_capacity(8 + source.len() + formatted.len());
+    bytes.extend_from_slice(&(source.len() as u64).to_le_bytes());
+    bytes.extend_from_slice(source.as_bytes());
+    bytes.extend_from_slice(formatted.as_bytes());
+    let temporary = path.with_extension(format!("{}.tmp", std::process::id()));
+    if fs::write(&temporary, bytes).is_ok() {
+        if fs::rename(&temporary, path).is_err() {
+            let _ = fs::remove_file(temporary);
+        }
+    }
+}
+
+fn format_source_cached(source: &str) -> Result<String, String> {
+    let path = cache_path(source);
+    if let Some(formatted) = read_cache(&path, source) {
+        return Ok(formatted);
+    }
+    let formatted = format_source(source)?;
+    write_cache(&path, source, &formatted);
+    Ok(formatted)
+}
+
 fn main() {
-    let path = env::args_os().nth(1).map(PathBuf::from);
+    let mut cache = false;
+    let mut path = None;
+    for argument in env::args_os().skip(1) {
+        if argument == "--cache" {
+            cache = true;
+        } else if path.is_none() {
+            path = Some(PathBuf::from(argument));
+        } else {
+            eprintln!("usage: rustfmt-repl [--cache] [path]");
+            std::process::exit(2);
+        }
+    }
     let source = match &path {
         Some(path) => fs::read_to_string(path).unwrap_or_else(|error| {
             eprintln!("failed to read {}: {error}", path.display());
@@ -94,15 +156,22 @@ fn main() {
         }),
         None => {
             let mut source = String::new();
-            io::stdin().read_to_string(&mut source).unwrap_or_else(|error| {
-                eprintln!("failed to read stdin: {error}");
-                std::process::exit(2);
-            });
+            io::stdin()
+                .read_to_string(&mut source)
+                .unwrap_or_else(|error| {
+                    eprintln!("failed to read stdin: {error}");
+                    std::process::exit(2);
+                });
             source
         }
     };
 
-    let formatted = format_source(&source).unwrap_or_else(|error| {
+    let formatted = if cache {
+        format_source_cached(&source)
+    } else {
+        format_source(&source)
+    }
+    .unwrap_or_else(|error| {
         eprintln!("unable to format Rust source or snippet:\n{error}");
         std::process::exit(1);
     });

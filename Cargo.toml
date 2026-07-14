@@ -1,6 +1,12 @@
 [package]
-name = "rustfmt-snippet"
-version = "0.1.0"
+name = "rustfmt-repl"
+version = "0.1.2"
 edition = "2024"
+description = "Format Rust REPL and Markdown snippets with rustfmt"
+license = "MIT"
+repository = "https://github.com/qrkks/rustfmt-snippet"
+readme = "README.md"
+keywords = ["rustfmt", "repl", "markdown", "formatter"]
+categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
