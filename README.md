@@ -27,6 +27,12 @@ Or format a file in place:
 rustfmt-repl path\to\snippet.rs
 ```
 
+For repeated formatting of many snippets, enable the opt-in content cache:
+
+```powershell
+rustfmt-repl --cache path\to\snippet.rs
+```
+
 ## mdsf
 
 ```json
@@ -34,7 +40,7 @@ rustfmt-repl path\to\snippet.rs
   "languages": {
     "rust": {
       "binary": "rustfmt-repl",
-      "arguments": ["$PATH"],
+      "arguments": ["--cache", "$PATH"],
       "stdin": false
     }
   }
