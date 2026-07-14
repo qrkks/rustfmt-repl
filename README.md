@@ -33,7 +33,19 @@ For repeated formatting of many snippets, enable the opt-in content cache:
 rustfmt-repl --cache path\to\snippet.rs
 ```
 
-## mdsf
+## Markdown code-block formatters
+
+`rustfmt-repl` can be used as the Rust formatter behind either
+[mdsf](https://github.com/hougesen/mdsf) or
+[Panache](https://github.com/jolars/panache). The orchestrator extracts Rust
+code blocks; `rustfmt-repl` makes complete files and statement snippets usable
+with `rustfmt`.
+
+Use one of these integrations in a formatting chain, not both.
+
+### mdsf
+
+Add the following language entry to `mdsf.json`:
 
 ```json
 {
@@ -46,6 +58,32 @@ rustfmt-repl --cache path\to\snippet.rs
   }
 }
 ```
+
+mdsf gives `rustfmt-repl` a temporary file through `$PATH`, so this example
+uses file mode.
+
+### Panache
+
+Add the following entries to `panache.toml`:
+
+```toml
+external-max-parallel = 8
+
+[formatters]
+rust = "rustfmt-repl"
+rs = "rustfmt-repl"
+
+[formatters.rustfmt-repl]
+cmd = "rustfmt-repl"
+args = ["--cache"]
+stdin = true
+```
+
+Panache sends each code block through stdin and can run independent code-block
+formatters in parallel. `rustfmt-repl` still performs the snippet wrapping and
+unwrapping required by `rustfmt`.
+
+## PATH
 
 Make sure Cargo's binary directory is available on `PATH`. Its usual location
 is `$HOME/.cargo/bin` on Unix-like systems and `%USERPROFILE%\.cargo\bin` on
